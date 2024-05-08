@@ -204,7 +204,7 @@ struct kstarzeroanalysis {
       histos.fill(HIST("TestME/hnTrksMixedE"), dTracks1.size());
     }
 
-    for (auto const& [trkKa, trkPi] : soa::combinations(soa::CombinationsFullIndexPolicy(dTracks1, dTracks2))) {
+    for (auto const& [trkPi, trkKa] : soa::combinations(soa::CombinationsFullIndexPolicy(dTracks1, dTracks2))) {
       if constexpr (!IsMix) {
         histos.fill(HIST("TestME/hPairsCounterSameE"), 1.0);
       } else {
