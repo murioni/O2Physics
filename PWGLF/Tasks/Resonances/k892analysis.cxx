@@ -18,6 +18,7 @@
 #include <TLorentzVector.h>
 #include "TF1.h"
 
+#include "Common/Core/RecoDecay.h"
 #include "Common/DataModel/PIDResponse.h"
 #include "Common/DataModel/Centrality.h"
 #include "Common/DataModel/EventSelection.h"
@@ -259,6 +260,12 @@ struct k892analysis {
       histos.add("k892Rec", "pT distribution of Reconstructed MC K(892)0", kTH2F, {ptAxis, centAxis});
       histos.add("k892RecAnti", "pT distribution of Reconstructed MC Anti-K(892)0", kTH2F, {ptAxis, centAxis});
       histos.add("k892Recinvmass", "Inv mass distribution of Reconstructed MC Phi", kTH1F, {invMassAxis});
+
+      histos.add("k892GenInvmass", "Invariant mass of generated K(892)0", kTH1F, {invMassAxis});
+      histos.add("k892GenInvmassAnti", "Invariant mass of generated Anti-K(892)0", kTH1F, {invMassAxis});
+      histos.add("h3k892GenInvmass", "Invariant mass of generated K(892)0", kTH3F, {centAxis, ptAxis, invMassAxis});
+      histos.add("h3k892GenInvmassAnti", "Invariant mass of generated Anti-K(892)0", kTH3F, {centAxis, ptAxis, invMassAxis});
+
     }
     // Print output histograms statistics
     LOG(info) << "Size of the histograms in spectraTOF";
@@ -678,7 +685,7 @@ struct k892analysis {
   }
   PROCESS_SWITCH(k892analysis, processMCLight, "Process Event for MC (Reconstructed)", false);
 
-  void processMCTrue(ResoMCCols::iterator const& collision, aod::ResoMCParents& resoParents)
+  void processMCTrue(ResoMCCols::iterator const& collision, aod::ResoMCParents& resoParents, aod::McParticles& mcparticles )
   {
     auto multiplicity = collision.cent();
     for (auto& part : resoParents) { // loop over all pre-filtered MC particles
@@ -690,34 +697,65 @@ struct k892analysis {
       if (!pass1 || !pass2)
         continue;
 
+      TLorentzVector lDecayDaughter1, lDecayDaughter2, lResonance;
+      
+      std::vector<int> listDaughters{};
+      std::array<int, 2> dauPdgs = {211, 321};
+ 
+      auto mcparticle = part.mcParticle_as<aod::McParticles>();
+
+      RecoDecay::getDaughters(mcparticle, &listDaughters, dauPdgs, 1);
+
+      for (const auto& dauIdx : listDaughters) {
+	auto dauPart = mcparticles.rawIteratorAt(dauIdx - mcparticles.offset());
+
+	if (std::abs(dauPart.pdgCode()) == 211) {
+	  lDecayDaughter1.SetXYZM(dauPart.px(), dauPart.py(), dauPart.pz(), massPi);
+        }else if(std::abs(dauPart.pdgCode()) == 321){
+	  lDecayDaughter2.SetXYZM(dauPart.px(), dauPart.py(), dauPart.pz(), massKa);
+	}
+
+      }
+      lResonance = lDecayDaughter1 + lDecayDaughter2; 
+      
+      if (part.pdgCode() > 0) { //no cuts, purely generated
+	histos.fill(HIST("k892GenInvmass"), lResonance.M());
+	histos.fill(HIST("h3k892GenInvmass"), multiplicity, lResonance.Pt(), lResonance.M());
+      } else {
+	histos.fill(HIST("k892GenInvmassAnti"), lResonance.M());
+	histos.fill(HIST("h3k892GenInvmassAnti"), multiplicity, lResonance.Pt(), lResonance.M());
+      }
+
+
+
       if (collision.isVtxIn10()) // INEL10
-      {
-        if (part.pdgCode() > 0)
-          histos.fill(HIST("k892Gen"), 0, part.pt(), multiplicity);
-        else
-          histos.fill(HIST("k892GenAnti"), 0, part.pt(), multiplicity);
-      }
+	{
+	  if (part.pdgCode() > 0)
+	    histos.fill(HIST("k892Gen"), 0, part.pt(), multiplicity);
+	  else
+	    histos.fill(HIST("k892GenAnti"), 0, part.pt(), multiplicity);
+	}
       if (collision.isVtxIn10() && collision.isInSel8()) // INEL>10, vtx10
-      {
-        if (part.pdgCode() > 0)
-          histos.fill(HIST("k892Gen"), 1, part.pt(), multiplicity);
-        else
-          histos.fill(HIST("k892GenAnti"), 1, part.pt(), multiplicity);
-      }
+	{
+	  if (part.pdgCode() > 0)
+	    histos.fill(HIST("k892Gen"), 1, part.pt(), multiplicity);
+	  else
+	    histos.fill(HIST("k892GenAnti"), 1, part.pt(), multiplicity);
+	}
       if (collision.isVtxIn10() && collision.isTriggerTVX()) // vtx10, TriggerTVX
-      {
-        if (part.pdgCode() > 0)
-          histos.fill(HIST("k892Gen"), 2, part.pt(), multiplicity);
-        else
-          histos.fill(HIST("k892GenAnti"), 2, part.pt(), multiplicity);
-      }
+	{
+	  if (part.pdgCode() > 0)
+	    histos.fill(HIST("k892Gen"), 2, part.pt(), multiplicity);
+	  else
+	    histos.fill(HIST("k892GenAnti"), 2, part.pt(), multiplicity);
+	}
       if (collision.isInAfterAllCuts()) // after all event selection
-      {
-        if (part.pdgCode() > 0)
-          histos.fill(HIST("k892Gen"), 3, part.pt(), multiplicity);
-        else
-          histos.fill(HIST("k892GenAnti"), 3, part.pt(), multiplicity);
-      }
+	{
+	  if (part.pdgCode() > 0)
+	    histos.fill(HIST("k892Gen"), 3, part.pt(), multiplicity);
+	  else
+	    histos.fill(HIST("k892GenAnti"), 3, part.pt(), multiplicity);
+	}
     }
   }
   PROCESS_SWITCH(k892analysis, processMCTrue, "Process Event for MC (Generated)", false);
