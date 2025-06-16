@@ -108,6 +108,7 @@ struct K892analysispbpb {
   Configurable<float> cMaxTOFnSigmaPion{"cMaxTOFnSigmaPion", 3.0, "TOF nSigma cut for Pion"}; // TOF
   Configurable<bool> cByPassTOF{"cByPassTOF", false, "By pass TOF PID selection"};            // By pass TOF PID selection
   Configurable<bool> cTofBetaCut{"cTofBetaCut", false, "selection on TOF beta"};
+  Configurable<int>  cTofBetaCutNsigma{"cTofBetaCutNsigma", 3, "Nsigma selection on TOF beta ~ 1"};
 
   Configurable<bool> cTPClowpt{"cTPClowpt", true, "apply TPC at low pt"};
   Configurable<bool> cTOFonlyHighpt{"cTOFonlyHighpt", false, "apply TOF only at high pt"};
@@ -159,7 +160,7 @@ struct K892analysispbpb {
     AxisSpec pdgCodeAxis = {cPDGbins, 0, cPDGMax};
     AxisSpec impactParAxis = {binsImpactPar, "Impact Parameter"};
 
-    if ((!doprocessMC && !doprocessMCRun2) || doprocessMixedEventMC || doprocessMixedEventMCRun2) {
+    if ((!doprocessMC && !doprocessMCRun2) || doprocessMixedEventMC || doprocessMixedEventMCpp || doprocessMixedEventMCRun2) {
       // event histograms
       histos.add("QAevent/hEvtCounterSameE", "Number of analyzed Same Events", HistType::kTH1F, {{1, 0.5, 1.5}});
       histos.add("QAevent/hMultiplicityPercentSameE", "Multiplicity percentile of collision", HistType::kTH1F, {{120, 0.0f, 120.0f}});
@@ -186,7 +187,7 @@ struct K892analysispbpb {
     histos.add("k892invmassDSAnti", "Invariant mass of Anti-K(892)0 different sign", kTH1F, {invMassAxis});
     histos.add("k892invmassLS", "Invariant mass of K(892)0 like sign", kTH1F, {invMassAxis});
     histos.add("k892invmassLSAnti", "Invariant mass of Anti-K(892)0 like sign", kTH1F, {invMassAxis});
-    if (doprocessMixedEvent || doprocessMixedEventRun2 || doprocessMixedEventMC || doprocessMixedEventMCRun2) {
+    if (doprocessMixedEvent || doprocessMixedEventpp || doprocessMixedEventRun2 || doprocessMixedEventMC || doprocessMixedEventMCpp || doprocessMixedEventMCRun2) {
       histos.add("k892invmassME", "Invariant mass of K(892)0 mixed event", kTH1F, {invMassAxis});
       if (additionalMEPlots) {
         histos.add("k892invmassME_DS", "Invariant mass of K(892)0 mixed event DS", kTH1F, {invMassAxis});
@@ -209,6 +210,9 @@ struct K892analysispbpb {
       histos.add("QA/h2k892ptMothervsptPiDSAnti", "Pt of Anti-K(892)0 differnt sign vs pt pion daughter", kTH2F, {ptAxisMom, ptAxisDau});
       histos.add("QA/h2k892ptMothervsptKaDS", "Pt of K(892)0 differnt sign vs pt kaon daughter", kTH2F, {ptAxisMom, ptAxisDau});
       histos.add("QA/h2k892ptMothervsptKaDSAnti", "Pt of Anti-K(892)0 differnt sign vs pt kaon daughter", kTH2F, {ptAxisMom, ptAxisDau});
+      
+      histos.add("QA/hKaTOFbeta", "Beta of kaon daughter", kTH1F, {{500,0,1.2,"TOF #Beta"}});
+      histos.add("QA/hPiTOFbeta", "Beta of pion daughter", kTH1F, {{500,0,1.2,"TOF #Beta"}});      
 
       histos.add("QAME/h2k892ptMothervsptPiDS", "Pt of Mother vs pt pion daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
       histos.add("QAME/h2k892ptMothervsptPiDSAnti", "Pt of Anti-Mother vs pt pion daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
@@ -246,7 +250,7 @@ struct K892analysispbpb {
       histos.add("h3k892invmassRotDSAnti", "Invariant mass of Anti-K(892)0 Rotational Bkg", kTH3F, {centAxis, ptAxis, invMassAxis});
     }
 
-    if (doprocessMixedEvent || doprocessMixedEventRun2 || doprocessMixedEventMC || doprocessMixedEventMCRun2) {
+    if (doprocessMixedEvent || doprocessMixedEventpp || doprocessMixedEventRun2 || doprocessMixedEventMC || doprocessMixedEventMCpp || doprocessMixedEventMCRun2) {
       histos.add("h3k892invmassME", "Invariant mass of K(892)0 mixed event", kTH3F, {centAxis, ptAxis, invMassAxis});
 
       if (additionalMEPlots) {
@@ -262,7 +266,7 @@ struct K892analysispbpb {
       }
     }
 
-    if (doprocessMixedEventMC || doprocessMixedEventMCRun2) {
+    if (doprocessMixedEventMC || doprocessMixedEventMCpp || doprocessMixedEventMCRun2) {
       histos.add("h3k892invmassWrongDaughtersME_DS", "Invariant mass ME with wrong daughters DS", kTH3F, {centAxis, ptAxis, invMassAxis});
       histos.add("h3k892invmassWrongDaughtersME_DSAnti", "Invariant mass ME with wrong daughters DS anti", kTH3F, {centAxis, ptAxis, invMassAxis});
       histos.add("h3k892invmassRightDaughtersME_DS", "Invariant mass ME with right daughters DS", kTH3F, {centAxis, ptAxis, invMassAxis});
@@ -417,7 +421,7 @@ struct K892analysispbpb {
 
       if (candidate.hasTPC() && std::abs(candidate.tpcNSigmaKa()) <= cMaxTPCnSigmaKaon) { // tpc cut, tof when available
 
-        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + 3 * candidate.betaerror() > 1))
+        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + cTofBetaCutNsigma * candidate.betaerror() > 1))
           return false;
 
         if (cByPassTOF) // skip tof selection
@@ -455,7 +459,7 @@ struct K892analysispbpb {
 
       if (candidate.hasTPC() && std::abs(candidate.tpcNSigmaPi()) <= cMaxTPCnSigmaPion) { // tpc cut, tof when available
 
-        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + 3 * candidate.betaerror() > 1))
+        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + cTofBetaCutNsigma * candidate.betaerror() > 1))
           return false;
 
         if (cByPassTOF) // skip tof selection
@@ -634,6 +638,8 @@ struct K892analysispbpb {
             if (additionalQAplots) {
               histos.fill(HIST("QA/h2k892ptMothervsptPiDS"), lResonance.Pt(), lDecayDaughter1.Pt());
               histos.fill(HIST("QA/h2k892ptMothervsptKaDS"), lResonance.Pt(), lDecayDaughter2.Pt());
+	      histos.fill(HIST("QA/hPiTOFbeta"), trk1.beta());
+	      histos.fill(HIST("QA/hKaTOFbeta"), trk2.beta());
             }
           } else if (track1Sign > 0) {
             histos.fill(HIST("k892invmassDSAnti"), lResonance.M());
