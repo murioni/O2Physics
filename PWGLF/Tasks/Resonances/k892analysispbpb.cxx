@@ -108,7 +108,8 @@ struct K892analysispbpb {
   Configurable<float> cMaxTOFnSigmaPion{"cMaxTOFnSigmaPion", 3.0, "TOF nSigma cut for Pion"}; // TOF
   Configurable<bool> cByPassTOF{"cByPassTOF", false, "By pass TOF PID selection"};            // By pass TOF PID selection
   Configurable<bool> cTofBetaCut{"cTofBetaCut", false, "selection on TOF beta"};
-  Configurable<int>  cTofBetaCutNsigma{"cTofBetaCutNsigma", 3, "Nsigma selection on TOF beta ~ 1"};
+  Configurable<int>  cTofBetaCutNsigmaPi{"cTofBetaCutNsigmaPi", 0, "Pi Nsigma selection on TOF beta ~ 1"};
+  Configurable<int>  cTofBetaCutNsigmaKa{"cTofBetaCutNsigmaKa", 3, "Ka Nsigma selection on TOF beta ~ 1"};
 
   Configurable<bool> cTPClowpt{"cTPClowpt", true, "apply TPC at low pt"};
   Configurable<bool> cTOFonlyHighpt{"cTOFonlyHighpt", false, "apply TOF only at high pt"};
@@ -211,9 +212,12 @@ struct K892analysispbpb {
       histos.add("QA/h2k892ptMothervsptKaDS", "Pt of K(892)0 differnt sign vs pt kaon daughter", kTH2F, {ptAxisMom, ptAxisDau});
       histos.add("QA/h2k892ptMothervsptKaDSAnti", "Pt of Anti-K(892)0 differnt sign vs pt kaon daughter", kTH2F, {ptAxisMom, ptAxisDau});
       
-      histos.add("QA/hKaTOFbeta", "Beta of kaon daughter", kTH1F, {{500,0,1.2,"TOF #Beta"}});
-      histos.add("QA/hPiTOFbeta", "Beta of pion daughter", kTH1F, {{500,0,1.2,"TOF #Beta"}});      
+      histos.add("QA/hKaTOFbeta", "Beta of kaon daughter", kTH1F, {{500,0,1.2,"TOF #beta"}});
+      histos.add("QA/hPiTOFbeta", "Beta of pion daughter", kTH1F, {{500,0,1.2,"TOF #beta"}});      
+      histos.add("QA/hKaTOFbetavsPinTPC", "Beta of kaon daughter vs PinTPC", kTH2F, {{500,0,20,"P in TPC"},{500,0,1.2,"TOF #beta"}});
+      histos.add("QA/hPiTOFbetavsPinTPC", "Beta of pion daughter vs PinTPC", kTH2F, {{500,0,20,"P in TPC"},{500,0,1.2,"TOF #beta"}});
 
+      
       histos.add("QAME/h2k892ptMothervsptPiDS", "Pt of Mother vs pt pion daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
       histos.add("QAME/h2k892ptMothervsptPiDSAnti", "Pt of Anti-Mother vs pt pion daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
       histos.add("QAME/h2k892ptMothervsptKaDS", "Pt of Mother vs pt kaon daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
@@ -421,7 +425,7 @@ struct K892analysispbpb {
 
       if (candidate.hasTPC() && std::abs(candidate.tpcNSigmaKa()) <= cMaxTPCnSigmaKaon) { // tpc cut, tof when available
 
-        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + cTofBetaCutNsigma * candidate.betaerror() > 1))
+        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + cTofBetaCutNsigmaKa * candidate.betaerror() > 1))
           return false;
 
         if (cByPassTOF) // skip tof selection
@@ -459,7 +463,7 @@ struct K892analysispbpb {
 
       if (candidate.hasTPC() && std::abs(candidate.tpcNSigmaPi()) <= cMaxTPCnSigmaPion) { // tpc cut, tof when available
 
-        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + cTofBetaCutNsigma * candidate.betaerror() > 1))
+        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + cTofBetaCutNsigmaPi * candidate.betaerror() > 1))
           return false;
 
         if (cByPassTOF) // skip tof selection
@@ -640,6 +644,8 @@ struct K892analysispbpb {
               histos.fill(HIST("QA/h2k892ptMothervsptKaDS"), lResonance.Pt(), lDecayDaughter2.Pt());
 	      histos.fill(HIST("QA/hPiTOFbeta"), trk1.beta());
 	      histos.fill(HIST("QA/hKaTOFbeta"), trk2.beta());
+	      histos.fill(HIST("QA/hPiTOFbetavsPinTPC"), trk1.p(), trk1.beta());
+	      histos.fill(HIST("QA/hKaTOFbetavsPinTPC"), trk2.p(), trk2.beta());
             }
           } else if (track1Sign > 0) {
             histos.fill(HIST("k892invmassDSAnti"), lResonance.M());
