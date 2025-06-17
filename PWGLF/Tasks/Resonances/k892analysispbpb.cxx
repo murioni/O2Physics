@@ -108,8 +108,8 @@ struct K892analysispbpb {
   Configurable<float> cMaxTOFnSigmaPion{"cMaxTOFnSigmaPion", 3.0, "TOF nSigma cut for Pion"}; // TOF
   Configurable<bool> cByPassTOF{"cByPassTOF", false, "By pass TOF PID selection"};            // By pass TOF PID selection
   Configurable<bool> cTofBetaCut{"cTofBetaCut", false, "selection on TOF beta"};
-  Configurable<int>  cTofBetaCutNsigmaPi{"cTofBetaCutNsigmaPi", 0, "Pi Nsigma selection on TOF beta ~ 1"};
-  Configurable<int>  cTofBetaCutNsigmaKa{"cTofBetaCutNsigmaKa", 3, "Ka Nsigma selection on TOF beta ~ 1"};
+  Configurable<float>  cParMtofKa{"cParMtofKa", 0.02, "m of pol1 selection on TOF beta Ka"};
+  Configurable<float>  cParQtofKa{"cParQtofKa", 0.94, "q of pol1 selection on TOF beta Ka"};
 
   Configurable<bool> cTPClowpt{"cTPClowpt", true, "apply TPC at low pt"};
   Configurable<bool> cTOFonlyHighpt{"cTOFonlyHighpt", false, "apply TOF only at high pt"};
@@ -222,6 +222,11 @@ struct K892analysispbpb {
       histos.add("QAME/h2k892ptMothervsptPiDSAnti", "Pt of Anti-Mother vs pt pion daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
       histos.add("QAME/h2k892ptMothervsptKaDS", "Pt of Mother vs pt kaon daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
       histos.add("QAME/h2k892ptMothervsptKaDSAnti", "Pt of Anti-Mother vs pt pion daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
+
+      histos.add("h3k892invmassEldaughters_DS", "3d Invariant mass with electron mass on daughters DS", kTH3F, {centAxis, ptAxis, invMassAxis});
+      histos.add("k892invmassEldaughters_DS", "Invariant mass with electron mass on daughters DS", kTH1F, {invMassAxis});
+      histos.add("h3k892invmassEldaughters_DSanti", "3d Invariant mass with electron mass on daughters DSanti", kTH3F, {centAxis, ptAxis, invMassAxis});
+      histos.add("k892invmassEldaughters_DSanti", "Invariant mass with electron mass on daughters DSanti", kTH1F, {invMassAxis});
     }
 
     // DCA QA
@@ -337,6 +342,7 @@ struct K892analysispbpb {
 
   double massKa = o2::constants::physics::MassKPlus;
   double massPi = o2::constants::physics::MassPiPlus;
+  double massEl = o2::constants::physics::MassElectron;
 
   template <typename CollType>
   bool myEventSelections(const CollType& coll)
@@ -425,7 +431,10 @@ struct K892analysispbpb {
 
       if (candidate.hasTPC() && std::abs(candidate.tpcNSigmaKa()) <= cMaxTPCnSigmaKaon) { // tpc cut, tof when available
 
-        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + cTofBetaCutNsigmaKa * candidate.betaerror() > 1))
+	TF1 *TOFKa1 = new TF1("TOFKa1", "[0]*x+[1]",0.0,20);
+	TOFKa1->SetParameters(cParMtofKa,cParQtofKa); 
+
+        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() > TOFKa1->Eval(candidate.p()) || candidate.beta() > 1))
           return false;
 
         if (cByPassTOF) // skip tof selection
@@ -463,7 +472,7 @@ struct K892analysispbpb {
 
       if (candidate.hasTPC() && std::abs(candidate.tpcNSigmaPi()) <= cMaxTPCnSigmaPion) { // tpc cut, tof when available
 
-        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() + cTofBetaCutNsigmaPi * candidate.betaerror() > 1))
+        if (cTofBetaCut && candidate.hasTOF() && (candidate.beta() > 1))
           return false;
 
         if (cByPassTOF) // skip tof selection
@@ -498,7 +507,7 @@ struct K892analysispbpb {
     }
     
     auto oldindex = -999;
-    TLorentzVector lDecayDaughter1, lDecayDaughter2, lResonance, ldaughterRot, lResonanceRot;
+    TLorentzVector lDecayDaughter1, lDecayDaughter2, lResonance, ldaughterRot, lResonanceRot, lDecayDaughterEl1, lDecayDaughterEl2, lResonanceEl;
     for (const auto& [trk1, trk2] : combinations(CombinationsFullIndexPolicy(dTracks1, dTracks2))) {
       // Full index policy is needed to consider all possible combinations
       if (trk1.index() == trk2.index())
@@ -591,6 +600,25 @@ struct K892analysispbpb {
       int track1Sign = trk1.sign();
       int track2Sign = trk2.sign();
 
+      //// Resonance check with electron mass
+      lDecayDaughterEl1.SetXYZM(trk1.px(), trk1.py(), trk1.pz(), massEl);
+      lDecayDaughterEl2.SetXYZM(trk2.px(), trk2.py(), trk2.pz(), massEl);
+      lResonanceEl = lDecayDaughterEl1 + lDecayDaughterEl2;
+      // Rapidity cut
+      if constexpr (!IsMix) { // same event
+	if (additionalQAplots) {
+	  if (std::abs(lResonanceEl.Rapidity()) < 0.5  && lResonanceEl.Pt() < cMaxPtMotherCut && lResonanceEl.M() < cMaxMinvMotherCut) {
+	    if(track1Sign < 0) {
+	      histos.fill(HIST("k892invmassEldaughters_DS"), lResonanceEl.M());
+	      histos.fill(HIST("h3k892invmassEldaughters_DS"), multiplicity, lResonanceEl.Pt(), lResonanceEl.M());
+	    } else {
+	      histos.fill(HIST("k892invmassEldaughters_DSanti"), lResonanceEl.M());
+	      histos.fill(HIST("h3k892invmassEldaughters_DSanti"), multiplicity, lResonanceEl.Pt(), lResonanceEl.M());
+	    }
+	  }
+	}
+      }
+      
       //// Resonance reconstruction
       lDecayDaughter1.SetXYZM(trk1.px(), trk1.py(), trk1.pz(), massPi);
       lDecayDaughter2.SetXYZM(trk2.px(), trk2.py(), trk2.pz(), massKa);
@@ -605,6 +633,8 @@ struct K892analysispbpb {
           continue;
       }
 
+     
+      
       //// Un-like sign pair only
       if (track1Sign * track2Sign < 0) {
         if constexpr (IsRot) { // rotational background
