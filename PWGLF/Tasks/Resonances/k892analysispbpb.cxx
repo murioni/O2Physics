@@ -223,10 +223,10 @@ struct K892analysispbpb {
       histos.add("QAME/h2k892ptMothervsptKaDS", "Pt of Mother vs pt kaon daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
       histos.add("QAME/h2k892ptMothervsptKaDSAnti", "Pt of Anti-Mother vs pt pion daughter, Mixed Event", kTH2F, {ptAxisMom, ptAxisDau});
 
-      histos.add("h3k892invmassEldaughters_DS", "3d Invariant mass with electron mass on daughters DS", kTH3F, {centAxis, ptAxis, invMassAxis});
-      histos.add("k892invmassEldaughters_DS", "Invariant mass with electron mass on daughters DS", kTH1F, {invMassAxis});
-      histos.add("h3k892invmassEldaughters_DSanti", "3d Invariant mass with electron mass on daughters DSanti", kTH3F, {centAxis, ptAxis, invMassAxis});
-      histos.add("k892invmassEldaughters_DSanti", "Invariant mass with electron mass on daughters DSanti", kTH1F, {invMassAxis});
+      histos.add("h3k892invmassEldaughters_DS", "3d Invariant mass with electron mass on daughters DS", kTH3F, {centAxis, ptAxis, {500,0.,1.5, "inv mass"}});
+      histos.add("k892invmassEldaughters_DS", "Invariant mass with electron mass on daughters DS", kTH1F, {{500,0.,1.5, "inv mass"}});
+      histos.add("h3k892invmassEldaughters_DSanti", "3d Invariant mass with electron mass on daughters DSanti", kTH3F, {centAxis, ptAxis, {500,0.,1.5, "inv mass"}});
+      histos.add("k892invmassEldaughters_DSanti", "Invariant mass with electron mass on daughters DSanti", kTH1F, {{500,0.,1.5, "inv mass"}});
     }
 
     // DCA QA
