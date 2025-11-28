@@ -14,35 +14,52 @@
 /// \author Biao Zhang <biao.zhang@cern.ch>, Heidelberg University
 /// \author Fabrizio Grosa <fabrizio.grosa@cern.ch>, CERN
 
-#include <set>
-#include <vector>
-#include <algorithm>
-#include <utility>
-#include <string>
-#include <memory>
-
-#include "CommonConstants/PhysicsConstants.h"
-#include "DCAFitter/DCAFitterN.h"
-#include "Framework/AnalysisTask.h"
-#include "Framework/O2DatabasePDGPlugin.h"
-#include "Framework/runDataProcessing.h"
-#include "ReconstructionDataFormats/DCA.h"
-#include "ReconstructionDataFormats/V0.h"
-
-#include "Common/Core/trackUtilities.h"
-#include "Common/Core/TrackSelection.h"
-#include "Common/DataModel/CollisionAssociationTables.h"
-#include "Common/Core/TrackSelectionDefaults.h"
-
-#include "PWGHF/Core/HfHelper.h"
 #include "PWGHF/Core/CentralityEstimation.h"
+#include "PWGHF/Core/HfHelper.h"
+#include "PWGHF/DataModel/AliasTables.h"
 #include "PWGHF/DataModel/CandidateReconstructionTables.h"
 #include "PWGHF/DataModel/CandidateSelectionTables.h"
 #include "PWGHF/Utils/utilsBfieldCCDB.h"
-#include "PWGHF/Utils/utilsEvSelHf.h"
-#include "PWGHF/D2H/DataModel/ReducedDataModel.h"
 #include "PWGHF/Utils/utilsTrkCandHf.h"
-#include "PWGHF/D2H/Utils/utilsRedDataFormat.h"
+
+#include "Common/Core/RecoDecay.h"
+#include "Common/Core/trackUtilities.h"
+#include "Common/DataModel/Centrality.h"
+#include "Common/DataModel/CollisionAssociationTables.h"
+#include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/PIDResponseTOF.h"
+#include "Common/DataModel/PIDResponseTPC.h"
+#include "Common/DataModel/TrackSelectionTables.h"
+
+#include <CCDB/BasicCCDBManager.h>
+#include <CommonConstants/PhysicsConstants.h>
+#include <DCAFitter/DCAFitterN.h>
+#include <DetectorsBase/MatLayerCylSet.h>
+#include <DetectorsBase/Propagator.h>
+#include <Framework/ASoA.h>
+#include <Framework/AnalysisDataModel.h>
+#include <Framework/AnalysisHelpers.h>
+#include <Framework/AnalysisTask.h>
+#include <Framework/Configurable.h>
+#include <Framework/HistogramRegistry.h>
+#include <Framework/HistogramSpec.h>
+#include <Framework/InitContext.h>
+#include <Framework/Logger.h>
+#include <Framework/runDataProcessing.h>
+#include <ReconstructionDataFormats/DCA.h>
+#include <ReconstructionDataFormats/V0.h>
+
+#include <TH1.h>
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <iterator>
+#include <memory>
+#include <numeric>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 using namespace o2;
 using namespace o2::analysis;
@@ -241,9 +258,8 @@ struct HfTreeCreatorTccToD0D0Pi {
   o2::vertexing::DCAFitterN<2> dfD1;  // 2-prong vertex fitter (to rebuild D01 vertex)
   o2::vertexing::DCAFitterN<2> dfD2;  // 2-prong vertex fitter (to rebuild D02 vertex)
 
-  HfHelper hfHelper;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
-  o2::base::MatLayerCylSet* lut;
+  o2::base::MatLayerCylSet* lut{};
   o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   double bz{0.};
   int runNumber{0};
@@ -375,16 +391,17 @@ struct HfTreeCreatorTccToD0D0Pi {
       o2::dataformats::V0 trackD2;
       auto thisCollId = collision.globalIndex();
       auto candwD0ThisColl = candidates.sliceBy(candsD0PerCollisionWithMl, thisCollId);
-      if (candwD0ThisColl.size() <= 1)
+      if (candwD0ThisColl.size() <= 1) {
         continue; // only loop the collision that include at least 2 D candidates
+      }
       auto trackIdsThisCollision = trackIndices.sliceBy(trackIndicesPerCollision, thisCollId);
 
       for (const auto& candidateD1 : candwD0ThisColl) {
 
         auto trackD1Prong0 = tracks.rawIteratorAt(candidateD1.prong0Id()); // positive daughter for D1
         auto trackD1Prong1 = tracks.rawIteratorAt(candidateD1.prong1Id()); // negative daughter for D1
-        std::array<float, 3> pVecD1Prong0{trackD1Prong0.pVector()};
-        std::array<float, 3> pVecD1Prong1{trackD1Prong1.pVector()};
+        std::array<float, 3> const pVecD1Prong0{trackD1Prong0.pVector()};
+        std::array<float, 3> const pVecD1Prong1{trackD1Prong1.pVector()};
         std::array<float, 3> pVecD1 = RecoDecay::pVec(pVecD1Prong0, pVecD1Prong1);
 
         for (auto candidateD2 = candidateD1 + 1; candidateD2 != candwD0ThisColl.end(); ++candidateD2) {
@@ -399,8 +416,8 @@ struct HfTreeCreatorTccToD0D0Pi {
 
           auto trackD2Prong0 = tracks.rawIteratorAt(candidateD2.prong0Id()); // positive daughter for D2
           auto trackD2Prong1 = tracks.rawIteratorAt(candidateD2.prong1Id()); // negative daughter for D2
-          std::array<float, 3> pVecD2Prong0{trackD2Prong0.pVector()};
-          std::array<float, 3> pVecD2Prong1{trackD2Prong1.pVector()};
+          std::array<float, 3> const pVecD2Prong0{trackD2Prong0.pVector()};
+          std::array<float, 3> const pVecD2Prong1{trackD2Prong1.pVector()};
           std::array<float, 3> pVecD2 = RecoDecay::pVec(pVecD2Prong0, pVecD2Prong1);
 
           if (buildVertex) {
@@ -492,23 +509,23 @@ struct HfTreeCreatorTccToD0D0Pi {
           if (candidateD1.isSelD0()) {
             candFlagD1 = (candidateD1.isSelD0bar()) ? 3 : 1;
             std::copy(candidateD1.mlProbD0().begin(), candidateD1.mlProbD0().end(), std::back_inserter(mlScoresD1));
-            massD01 = hfHelper.invMassD0ToPiK(candidateD1);
+            massD01 = HfHelper::invMassD0ToPiK(candidateD1);
           }
           if (candidateD1.isSelD0bar() && !candidateD1.isSelD0()) {
             candFlagD1 = 2;
             std::copy(candidateD1.mlProbD0bar().begin(), candidateD1.mlProbD0bar().end(), std::back_inserter(mlScoresD1));
-            massD01 = hfHelper.invMassD0barToKPi(candidateD1);
+            massD01 = HfHelper::invMassD0barToKPi(candidateD1);
           }
 
           if (candidateD2.isSelD0()) {
             candFlagD2 = (candidateD2.isSelD0bar()) ? 3 : 1;
             std::copy(candidateD2.mlProbD0().begin(), candidateD2.mlProbD0().end(), std::back_inserter(mlScoresD2));
-            massD02 = hfHelper.invMassD0ToPiK(candidateD2);
+            massD02 = HfHelper::invMassD0ToPiK(candidateD2);
           }
           if (candidateD2.isSelD0bar() && !candidateD2.isSelD0()) {
             candFlagD2 = 2;
             std::copy(candidateD2.mlProbD0bar().begin(), candidateD2.mlProbD0bar().end(), std::back_inserter(mlScoresD2));
-            massD02 = hfHelper.invMassD0barToKPi(candidateD2);
+            massD02 = HfHelper::invMassD0barToKPi(candidateD2);
           }
 
           // const auto massD0D0Pair = RecoDecay::m(std::array{pVecD1, pVecD2}, std::array{MassD0, MassD0});
@@ -608,8 +625,8 @@ struct HfTreeCreatorTccToD0D0Pi {
               impactParameterYSoftPi = impactParameterSoftPi.getY();
             }
             // Retrieve properties of the two D0 candidates
-            float yD1 = hfHelper.yD0(candidateD1);
-            float yD2 = hfHelper.yD0(candidateD2);
+            float yD1 = HfHelper::yD0(candidateD1);
+            float yD2 = HfHelper::yD0(candidateD2);
             float deltaMassD01 = -999;
             float deltaMassD02 = -999;
 
@@ -629,7 +646,7 @@ struct HfTreeCreatorTccToD0D0Pi {
             auto massKpipi1 = RecoDecay::m(std::array{pVecD1Prong0, pVecD1Prong1, pVecSoftPi}, std::array{massD1Daus[0], massD1Daus[1], MassPiPlus});
             auto massKpipi2 = RecoDecay::m(std::array{pVecD2Prong0, pVecD2Prong1, pVecSoftPi}, std::array{massD2Daus[0], massD2Daus[1], MassPiPlus});
             auto arrayMomentaDDpi = std::array{pVecD1, pVecD2, pVecSoftPi};
-            const auto massD0D0Pi = RecoDecay::m(std::move(arrayMomentaDDpi), std::array{MassD0, MassD0, MassPiPlus});
+            const auto massD0D0Pi = RecoDecay::m(arrayMomentaDDpi, std::array{MassD0, MassD0, MassPiPlus});
             const auto deltaMassD0D0Pi = massD0D0Pi - (massD01 + massD02);
 
             deltaMassD01 = massKpipi1 - massD01;

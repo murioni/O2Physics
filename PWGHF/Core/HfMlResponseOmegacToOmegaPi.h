@@ -16,14 +16,13 @@
 #ifndef PWGHF_CORE_HFMLRESPONSEOMEGACTOOMEGAPI_H_
 #define PWGHF_CORE_HFMLRESPONSEOMEGACTOOMEGAPI_H_
 
-#include <map>
-#include <string>
-#include <vector>
-
-#include "CommonConstants/PhysicsConstants.h"
-
 #include "PWGHF/Core/HfHelper.h"
 #include "PWGHF/Core/HfMlResponse.h"
+
+#include "Tools/ML/MlResponse.h"
+
+#include <cstdint>
+#include <vector>
 
 // Fill the map of available input features
 // the key is the feature's name (std::string)
@@ -52,10 +51,10 @@
   }
 
 // Variation of CHECK_AND_FILL_VEC_OMEGAC0_FULL(OBJECT, FEATURE, GETTER)
-// where GETTER is a method of hfHelper
+// where GETTER is a method of HfHelper
 #define CHECK_AND_FILL_VEC_OMEGAC0_HFHELPER(OBJECT, FEATURE, GETTER)  \
   case static_cast<uint8_t>(InputFeaturesOmegacToOmegaPi::FEATURE): { \
-    inputFeatures.emplace_back(hfHelper.GETTER(OBJECT));              \
+    inputFeatures.emplace_back(HfHelper::GETTER(OBJECT));             \
     break;                                                            \
   }
 namespace o2::analysis
@@ -96,8 +95,6 @@ class HfMlResponseOmegacToOmegaPi : public HfMlResponse<TypeOutputScore>
   HfMlResponseOmegacToOmegaPi() = default;
   /// Default destructor
   virtual ~HfMlResponseOmegacToOmegaPi() = default;
-
-  HfHelper hfHelper;
 
   /// Method to get the input features vector needed for ML inference
   /// \param candidate is the OMEGAC0 candidate

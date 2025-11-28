@@ -17,30 +17,30 @@
 //
 
 // C++ headers
+#include <algorithm>
+#include <random>
 #include <set>
 #include <utility>
-#include <algorithm>
 #include <vector>
-#include <random>
 
 // O2 headers
-#include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "Framework/O2DatabasePDGPlugin.h"
 #include "Framework/runDataProcessing.h"
 
 // O2Physics headers
+#include "PWGUD/Core/SGSelector.h"
+#include "PWGUD/Core/UPCTauCentralBarrelHelperRL.h"
+#include "PWGUD/DataModel/UDTables.h"
+
 #include "Common/CCDB/EventSelectionParams.h"
 #include "Common/Core/TrackSelection.h"
 #include "Common/Core/TrackSelectionDefaults.h"
 #include "Common/Core/trackUtilities.h"
 #include "Common/DataModel/EventSelection.h"
-#include "Common/DataModel/PIDResponse.h"
 #include "Common/DataModel/TrackSelectionTables.h"
-#include "PWGUD/Core/UPCTauCentralBarrelHelperRL.h"
-#include "PWGUD/DataModel/UDTables.h"
-#include "PWGUD/Core/SGSelector.h"
 
 // ROOT headers
 #include "Math/Vector4D.h"
@@ -151,6 +151,7 @@ struct UpcTauRl {
     Configurable<bool> useNumContribs{"useNumContribs", true, {"Use coll.numContribs as event cut"}};
     Configurable<int> cutRecoFlag{"cutRecoFlag", 1, {"0 = std mode, 1 = upc mode"}};
     Configurable<bool> useRecoFlag{"useRecoFlag", false, {"Use coll.flags as event cut"}};
+    Configurable<int> cutRCTflag{"cutRCTflag", 0, {"0 = off, 1 = CBT, 2 = CBT+ZDC, 3 = CBThadron, 4 = CBThadron+ZDC"}};
     Configurable<float> cutTrueGapSideFV0{"cutTrueGapSideFV0", -1, "FV0A threshold for SG selector"};
     Configurable<float> cutTrueGapSideFT0A{"cutTrueGapSideFT0A", 150., "FT0A threshold for SG selector"};
     Configurable<float> cutTrueGapSideFT0C{"cutTrueGapSideFT0C", 50., "FT0C threshold for SG selector"};
@@ -767,7 +768,7 @@ struct UpcTauRl {
       return false; // TPC chi2
     if (cutGlobalTrack.cutGoodITSTPCmatching) {
       if (track.itsChi2NCl() < 0.)
-        return false; // TPC chi2
+        return false; // good ITS-TPC matching means ITS ch2 is not negative
     }
     //  TOF
     if (track.hasTOF()) {
@@ -861,6 +862,23 @@ struct UpcTauRl {
       return false;
 
     return true;
+  }
+
+  template <typename C>
+  bool isGoodRCTflag(C const& coll)
+  {
+    switch (cutSample.cutRCTflag) {
+      case 1:
+        return sgSelector.isCBTOk(coll);
+      case 2:
+        return sgSelector.isCBTZdcOk(coll);
+      case 3:
+        return sgSelector.isCBTHadronOk(coll);
+      case 4:
+        return sgSelector.isCBTHadronZdcOk(coll);
+      default:
+        return true;
+    }
   }
 
   template <typename C>
@@ -2280,6 +2298,9 @@ struct UpcTauRl {
     fillRejectionReasonDG(reconstructedCollision);
     outputGlobalRejectionHistogram();
 
+    if (!isGoodRCTflag(reconstructedCollision))
+      return;
+
     if (!isGoodROFtime(reconstructedCollision))
       return;
 
@@ -2312,6 +2333,9 @@ struct UpcTauRl {
   {
     fillRejectionReasonSG(reconstructedCollision);
     outputGlobalRejectionHistogram();
+
+    if (!isGoodRCTflag(reconstructedCollision))
+      return;
 
     int gapSide = reconstructedCollision.gapSide();
     int trueGapSide = sgSelector.trueGap(reconstructedCollision, cutSample.cutTrueGapSideFV0, cutSample.cutTrueGapSideFT0A, cutSample.cutTrueGapSideFT0C, cutSample.cutTrueGapSideZDC);

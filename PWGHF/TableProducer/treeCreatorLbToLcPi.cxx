@@ -18,12 +18,21 @@
 /// \author Panos Christakoglou <Panos.Christakoglou@cern.ch>, Nikhef
 /// \author Maurice Jongerhuis <m.v.jongerhuis@students.uu.nl>, University Utrecht
 
-#include "Framework/AnalysisTask.h"
-#include "Framework/runDataProcessing.h"
-
 #include "PWGHF/Core/HfHelper.h"
 #include "PWGHF/DataModel/CandidateReconstructionTables.h"
 #include "PWGHF/DataModel/CandidateSelectionTables.h"
+
+#include "Common/Core/RecoDecay.h"
+#include "Common/DataModel/PIDResponseTOF.h"
+#include "Common/DataModel/PIDResponseTPC.h"
+
+#include <Framework/ASoA.h>
+#include <Framework/AnalysisDataModel.h>
+#include <Framework/AnalysisHelpers.h>
+#include <Framework/AnalysisTask.h>
+#include <Framework/runDataProcessing.h>
+
+#include <cstdint>
 
 using namespace o2;
 using namespace o2::framework;
@@ -187,7 +196,6 @@ DECLARE_SOA_TABLE(HfCandLbFulls, "AOD", "HFCANDLBFULL",
 /// Writes the full information in an output TTree
 struct HfTreeCreatorLbToLcPi {
   Produces<o2::aod::HfCandLbFulls> rowCandidateFull;
-  HfHelper hfHelper;
 
   using TracksWPid = soa::Join<aod::Tracks, aod::pidTPCFullPi, aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTOFFullPi, aod::pidTOFFullKa, aod::pidTOFFullPr>;
 
@@ -198,10 +206,10 @@ struct HfTreeCreatorLbToLcPi {
     // Filling candidate properties
     rowCandidateFull.reserve(candidates.size());
     for (const auto& candidate : candidates) {
-      auto fillTable = [&](int FunctionSelection,
-                           float FunctionInvMass,
-                           float FunctionCt,
-                           float FunctionY) {
+      auto fillTable = [&](int functionSelection,
+                           float functionInvMass,
+                           float functionCt,
+                           float functionY) {
         auto candLc = candidate.prong0_as<soa::Join<aod::HfCand3ProngWPidPiKaPr, aod::HfSelLc>>();
         auto track0 = candidate.prong1_as<TracksWPid>(); // daughter pion track
         auto track1 = candLc.prong0_as<TracksWPid>();    // granddaughter tracks (lc decay particles)
@@ -257,10 +265,10 @@ struct HfTreeCreatorLbToLcPi {
           candLc.nSigTofPr0(),
           candLc.nSigTofKa1(),
           candLc.nSigTofPi2(),
-          hfHelper.invMassLcToPKPi(candLc),
-          hfHelper.ctLc(candLc),
-          hfHelper.yLc(candLc),
-          hfHelper.eLc(candLc),
+          HfHelper::invMassLcToPKPi(candLc),
+          HfHelper::ctLc(candLc),
+          HfHelper::yLc(candLc),
+          HfHelper::eLc(candLc),
           candLc.eta(),
           candLc.xSecondaryVertex(),
           candLc.ySecondaryVertex(),
@@ -281,20 +289,20 @@ struct HfTreeCreatorLbToLcPi {
           track2.px(), track2.py(), track2.pz(),
           track3.px(), track3.py(), track3.pz(),
           track1.sign(), track2.sign(), track3.sign(),
-          FunctionSelection,
-          FunctionInvMass,
+          functionSelection,
+          functionInvMass,
           candidate.pt(),
           candidate.p(),
           candidate.cpa(),
           candidate.cpaXY(),
-          FunctionCt,
+          functionCt,
           candidate.eta(),
           candidate.phi(),
-          FunctionY,
+          functionY,
           tempConst,
           tempConst);
       };
-      fillTable(candidate.isSelLbToLcPi(), hfHelper.invMassLbToLcPi(candidate), hfHelper.ctLb(candidate), hfHelper.yLb(candidate));
+      fillTable(candidate.isSelLbToLcPi(), HfHelper::invMassLbToLcPi(candidate), HfHelper::ctLb(candidate), HfHelper::yLb(candidate));
     }
   }
 };

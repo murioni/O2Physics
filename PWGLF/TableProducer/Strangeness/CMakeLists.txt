@@ -36,8 +36,8 @@ o2physics_add_dpl_workflow(cascademcfinder
     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
     COMPONENT_NAME Analysis)
 
-o2physics_add_dpl_workflow(cascadepid
-    SOURCES cascadepid.cxx
+o2physics_add_dpl_workflow(strangenesstofpid
+    SOURCES strangenesstofpid.cxx
     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2::DetectorsBase
     COMPONENT_NAME Analysis)
 
@@ -58,7 +58,7 @@ o2physics_add_dpl_workflow(hstrangecorrelationfilter
 
 o2physics_add_dpl_workflow(double-casc-tree-creator
     SOURCES doubleCascTreeCreator.cxx
-    PUBLIC_LINK_LIBRARIES O2Physics::EventFilteringUtils
+    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2Physics::EventFilteringUtils
     COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(lambdakzerobuilder
@@ -81,13 +81,13 @@ o2physics_add_dpl_workflow(lambdakzeromcfinder
     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
     COMPONENT_NAME Analysis)
 
-o2physics_add_dpl_workflow(lambdakzeropid
-    SOURCES lambdakzeropid.cxx
-    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2::DetectorsBase
-    COMPONENT_NAME Analysis)
-
 o2physics_add_dpl_workflow(lambdakzerospawner
     SOURCES lambdakzerospawner.cxx
+    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
+    COMPONENT_NAME Analysis)
+
+o2physics_add_dpl_workflow(sigmaminus-task
+    SOURCES sigmaminustask.cxx
     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
     COMPONENT_NAME Analysis)
 
@@ -108,7 +108,7 @@ o2physics_add_dpl_workflow(strangederivedbuilder
 
 o2physics_add_dpl_workflow(strangenessbuilder
     SOURCES strangenessbuilder.cxx
-    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2::DCAFitter KFParticle::KFParticle O2Physics::TPCDriftManager
+    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2::DCAFitter KFParticle::KFParticle O2Physics::TPCDriftManager O2Physics::MLCore
     COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(v0-selector
@@ -166,3 +166,10 @@ o2physics_add_dpl_workflow(lambdaspincorrelation
     SOURCES lambdaspincorrelation.cxx
     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
     COMPONENT_NAME Analysis)
+
+if(FastJet_FOUND)
+    o2physics_add_dpl_workflow(lfinjets
+        SOURCES lfinjets.cxx
+        PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2Physics::PWGJECore FastJet::FastJet FastJet::Contrib O2Physics::EventFilteringUtils
+        COMPONENT_NAME Analysis)
+endif()

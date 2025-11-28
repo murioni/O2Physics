@@ -9,6 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+add_subdirectory(Converters)
 
 o2physics_add_dpl_workflow(tree-creator-electron-ml
                     SOURCES treeCreatorElectronML.cxx
@@ -17,11 +18,16 @@ o2physics_add_dpl_workflow(tree-creator-electron-ml
 
 o2physics_add_dpl_workflow(tree-creator-electron-ml-dda
                     SOURCES treeCreatorElectronMLDDA.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::AnalysisCCDB O2Physics::EventFilteringUtils
                     COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(skimmer-primary-electron
                     SOURCES skimmerPrimaryElectron.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::MLCore
+                    COMPONENT_NAME Analysis)
+
+o2physics_add_dpl_workflow(skimmer-primary-electron-qc
+                    SOURCES skimmerPrimaryElectronQC.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::MLCore
                     COMPONENT_NAME Analysis)
 
@@ -30,8 +36,8 @@ o2physics_add_dpl_workflow(skimmer-primary-muon
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2::GlobalTracking
                     COMPONENT_NAME Analysis)
 
-o2physics_add_dpl_workflow(skimmer-secondary-electron
-                    SOURCES skimmerSecondaryElectron.cxx
+o2physics_add_dpl_workflow(skimmer-primary-track
+                    SOURCES skimmerPrimaryTrack.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
                     COMPONENT_NAME Analysis)
 
@@ -50,11 +56,6 @@ o2physics_add_dpl_workflow(associate-mc-info-dilepton
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
                     COMPONENT_NAME Analysis)
 
-o2physics_add_dpl_workflow(filter-dielectron-event
-                    SOURCES filterDielectronEvent.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
 o2physics_add_dpl_workflow(event-selection
                     SOURCES eventSelection.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
@@ -65,3 +66,12 @@ o2physics_add_dpl_workflow(filter-eoi
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2physics_add_dpl_workflow(dielectron-producer
+                    SOURCES dielectronProducer.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2Physics::AnalysisCore O2Physics::PWGEMDileptonCore
+                    COMPONENT_NAME Analysis)
+
+o2physics_add_dpl_workflow(dimuon-producer
+                    SOURCES dimuonProducer.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2Physics::AnalysisCore O2Physics::PWGEMDileptonCore
+                    COMPONENT_NAME Analysis)
